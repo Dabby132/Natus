@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Sign In | NATUS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="bg-atmosphere"></div>
+
+<div class="auth-container">
+    <div class="auth-card reveal is-visible">
+        <a href="login.html" class="back-btn"><i class="fa-solid fa-arrow-left"></i> Back</a>
+
+        <span class="eyebrow" style="color:var(--magenta);">REGISTRAR PORTAL</span>
+        <h1 style="margin-top:8px;">Admin sign in</h1>
+        <p>Restricted access — civil registrars only.</p>
+
+        <form id="adminLoginForm" novalidate>
+            <div class="field">
+                <label for="email">Admin email</label>
+                <input type="email" id="email" required placeholder="admin@natus.gov">
+            </div>
+            <div class="field">
+                <label for="password">Password</label>
+                <input type="password" id="password" required placeholder="&bull;&bull;&bull;&bull;&bull;&bull;">
+            </div>
+            <div class="field-error" id="formError"></div>
+            <button type="submit" class="btn btn-magenta btn-block">
+                <i class="fa-solid fa-shield-halved"></i> Sign in
+            </button>
+        </form>
+
+        <p class="auth-switch" style="font-family:var(--font-mono); font-size:.72rem; opacity:.6;">
+            Demo credentials — admin@natus.gov / admin123
+        </p>
+    </div>
+</div>
+
+<script src="js/app.js"></script>
+<script>
+    Natus.nav.init([
+        { label: 'Home',        href: 'index.html', icon: 'fa-house' },
+        { label: 'Admin sign in', href: 'admin-login.html', icon: 'fa-shield-halved', current: true },
+    ]);
+
+    const form = document.getElementById('adminLoginForm');
+    const errorEl = document.getElementById('formError');
+
+    form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        errorEl.textContent = '';
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value;
+
+        try {
+            const user = Natus.auth.adminLogin(email, password);
+            Natus.toast(`Welcome, ${user.name.split(' ')[0]}.`, 'ok');
+            setTimeout(() => { window.location.href = 'admindash.html'; }, 600);
+        } catch (err){
+            errorEl.textContent = err.message;
+        }
+    });
+</script>
+</body>
+</html>

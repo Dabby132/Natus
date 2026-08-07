@@ -1,0 +1,646 @@
+
+
+/* ----------------------------------------------------------------------------
+   1. DESIGN TOKENS
+   A near-black civic-registry theme with a twin neon accent (cyan = identity /
+   verified, magenta = action / alert). Space Grotesk carries the "digital ID"
+   personality in headlines; Inter stays quiet in body copy; JetBrains Mono
+   is reserved for anything that reads like registry data (ref numbers, dates,
+   status codes) so the UI visually distinguishes "data" from "prose".
+---------------------------------------------------------------------------- */
+:root{
+  /* base surfaces */
+  --bg:            #07070d;
+  --bg-soft:       #0c0c17;
+  --surface:       #111120;
+  --surface-2:     #171729;
+  --border:        rgba(255,255,255,0.08);
+  --border-strong: rgba(255,255,255,0.16);
+
+  /* neon accents */
+  --cyan:          #00f0ff;
+  --cyan-dim:      rgba(0,240,255,0.14);
+  --magenta:       #ff2ec4;
+  --magenta-dim:   rgba(255,46,196,0.14);
+  --violet:        #7a5cff;
+  --lime:          #b6ff3c;
+
+  /* text */
+  --text:          #f2f3f8;
+  --text-dim:      #9a9db3;
+  --text-faint:    #5c5f76;
+
+  /* status */
+  --ok:            #35f2a4;
+  --warn:          #ffcf4d;
+  --danger:        #ff4d6d;
+
+  /* type */
+  --font-display: 'Space Grotesk', sans-serif;
+  --font-body:    'Inter', sans-serif;
+  --font-mono:    'JetBrains Mono', monospace;
+
+  /* certificate palette — warm paper instead of the neon dashboard theme */
+  --paper:        #f6f0e2;
+  --ink:          #1b1730;
+  --gold:         #c9a24c;
+  --gold-dark:    #8a6a22;
+  --font-display-cert: 'Playfair Display', serif;
+  --font-body-cert:    'Cormorant Garamond', serif;
+
+  --radius: 14px;
+  --radius-sm: 8px;
+  --ease: cubic-bezier(.22,.61,.36,1);
+}
+
+/* ----------------------------------------------------------------------------
+   2. RESET & BASE ELEMENTS
+---------------------------------------------------------------------------- */
+*, *::before, *::after{ box-sizing: border-box; }
+html{ scroll-behavior: smooth; }
+body{
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.55;
+  overflow-x: hidden;
+}
+h1,h2,h3,h4,h5{
+  font-family: var(--font-display);
+  font-weight: 600;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+p{ margin: 0; color: var(--text-dim); }
+a{ color: inherit; text-decoration: none; }
+button{ font-family: inherit; cursor: pointer; }
+input, select, textarea{ font-family: inherit; }
+::selection{ background: var(--cyan); color: #00131a; }
+:focus-visible{ outline: 2px solid var(--cyan); outline-offset: 3px; border-radius: 4px; }
+
+.mono{ font-family: var(--font-mono); }
+.eyebrow{
+  font-family: var(--font-mono);
+  font-size: .72rem;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: var(--cyan);
+}
+.container{ max-width: 1180px; margin: 0 auto; padding: 0 clamp(20px, 5vw, 56px); }
+
+/* ----------------------------------------------------------------------------
+   3. BACKGROUND ATMOSPHERE
+   A faint neon grid + soft glowing orbs sits behind every page, fixed so it
+   doesn't scroll with content. Cheap (pure CSS), always on, respects
+   reduced-motion.
+---------------------------------------------------------------------------- */
+.bg-atmosphere{
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(ellipse 900px 500px at 15% -10%, rgba(0,240,255,0.10), transparent 60%),
+    radial-gradient(ellipse 700px 500px at 100% 10%, rgba(255,46,196,0.08), transparent 60%),
+    linear-gradient(var(--bg), var(--bg));
+  background-color: var(--bg);
+}
+.bg-atmosphere::before{
+  /* faint grid, like a scan / blueprint field */
+  content:'';
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px);
+  background-size: 42px 42px;
+  mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 40%, transparent 90%);
+}
+.bg-atmosphere::after{
+  /* slow-drifting scan line — the signature ambient motion of the whole site */
+  content:'';
+  position: absolute; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+  opacity: .5;
+  filter: blur(.5px);
+  animation: scanDrift 9s linear infinite;
+}
+@keyframes scanDrift{
+  0%   { top: -5%; opacity: 0; }
+  10%  { opacity: .55; }
+  90%  { opacity: .55; }
+  100% { top: 105%; opacity: 0; }
+}
+
+/* ----------------------------------------------------------------------------
+   4. FLOATING NAVIGATION
+   There is intentionally no <header>. Navigation lives in a floating pill
+   button (bottom-right) that expands into a glass panel. Injected by
+   js/app.js -> NatusNav.init(), so markup below is what that script builds.
+---------------------------------------------------------------------------- */
+.nav-toggle{
+  position: fixed;
+  right: 24px; bottom: 24px;
+  z-index: 200;
+  width: 58px; height: 58px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 0 0 0 rgba(0,240,255,0.4), 0 8px 24px rgba(0,0,0,.5);
+  animation: pulseRing 2.6s var(--ease) infinite;
+  transition: transform .25s var(--ease), border-color .25s var(--ease);
+}
+.nav-toggle:hover{ transform: scale(1.06); border-color: var(--cyan); }
+.nav-toggle svg{ width: 22px; height: 22px; color: var(--cyan); transition: transform .3s var(--ease); }
+.nav-toggle.is-open svg{ transform: rotate(90deg); }
+@keyframes pulseRing{
+  0%   { box-shadow: 0 0 0 0 rgba(0,240,255,.35), 0 8px 24px rgba(0,0,0,.5); }
+  70%  { box-shadow: 0 0 0 14px rgba(0,240,255,0), 0 8px 24px rgba(0,0,0,.5); }
+  100% { box-shadow: 0 0 0 0 rgba(0,240,255,0), 0 8px 24px rgba(0,0,0,.5); }
+}
+
+.nav-panel{
+  position: fixed;
+  right: 24px; bottom: 94px;
+  z-index: 199;
+  width: min(280px, 78vw);
+  background: rgba(17,17,32,0.85);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  padding: 10px;
+  transform-origin: bottom right;
+  transform: scale(.85) translateY(12px);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform .28s var(--ease), opacity .22s var(--ease);
+  box-shadow: 0 20px 60px rgba(0,0,0,.55);
+}
+.nav-panel.is-open{ transform: scale(1) translateY(0); opacity: 1; pointer-events: auto; }
+.nav-panel .nav-brand{
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px 14px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 6px;
+}
+.nav-panel .nav-brand .dot{
+  width: 9px; height: 9px; border-radius: 50%;
+  background: var(--cyan); box-shadow: 0 0 10px var(--cyan);
+}
+.nav-panel .nav-brand strong{ font-family: var(--font-display); letter-spacing: .04em; }
+.nav-link{
+  display: flex; align-items: center; gap: 10px;
+  padding: 11px 12px;
+  border-radius: var(--radius-sm);
+  font-size: .9rem;
+  color: var(--text-dim);
+  transition: background .18s var(--ease), color .18s var(--ease), padding-left .18s var(--ease);
+}
+.nav-link i{ width: 16px; text-align: center; color: var(--text-faint); transition: color .18s var(--ease); }
+.nav-link:hover{ background: var(--surface-2); color: var(--text); padding-left: 16px; }
+.nav-link:hover i{ color: var(--cyan); }
+.nav-link.is-current{ color: var(--cyan); background: var(--cyan-dim); }
+.nav-link.is-current i{ color: var(--cyan); }
+.nav-link.danger:hover{ color: var(--danger); }
+.nav-link.danger:hover i{ color: var(--danger); }
+.nav-divider{ height: 1px; background: var(--border); margin: 6px 4px; }
+
+/* ----------------------------------------------------------------------------
+   5. BUTTONS & FORM FIELDS
+---------------------------------------------------------------------------- */
+.btn{
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 13px 24px;
+  font-size: .88rem; font-weight: 600; letter-spacing: .01em;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  transition: transform .2s var(--ease), box-shadow .25s var(--ease), border-color .2s var(--ease), background .2s var(--ease), color .2s var(--ease);
+  white-space: nowrap;
+}
+.btn-primary{
+  background: linear-gradient(135deg, var(--cyan), #00b8c9);
+  color: #001217;
+  box-shadow: 0 0 0 0 rgba(0,240,255,.5);
+}
+.btn-primary:hover{ transform: translateY(-2px); box-shadow: 0 10px 30px -8px rgba(0,240,255,.55); }
+.btn-magenta{
+  background: linear-gradient(135deg, var(--magenta), #b8188e);
+  color: #1a0212;
+}
+.btn-magenta:hover{ transform: translateY(-2px); box-shadow: 0 10px 30px -8px rgba(255,46,196,.5); }
+.btn-ghost{
+  background: transparent; border-color: var(--border-strong); color: var(--text);
+}
+.btn-ghost:hover{ border-color: var(--cyan); color: var(--cyan); }
+.btn-block{ width: 100%; }
+.btn:disabled{ opacity: .4; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
+.btn-sm{ padding: 8px 16px; font-size: .78rem; }
+
+.field{ display: flex; flex-direction: column; gap: 7px; margin-bottom: 18px; }
+.field label{ font-size: .78rem; color: var(--text-dim); letter-spacing: .02em; }
+.field input, .field select, .field textarea{
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 13px 15px;
+  border-radius: var(--radius-sm);
+  font-size: .92rem;
+  transition: border-color .2s var(--ease), box-shadow .2s var(--ease);
+}
+.field input:focus, .field select:focus, .field textarea:focus{
+  border-color: var(--cyan);
+  box-shadow: 0 0 0 3px var(--cyan-dim);
+  outline: none;
+}
+.field input::placeholder{ color: var(--text-faint); }
+.field-error{ font-size: .76rem; color: var(--danger); min-height: 1em; }
+.form-grid{ display: grid; grid-template-columns: 1fr 1fr; gap: 0 18px; }
+.form-grid .field.full{ grid-column: 1 / -1; }
+
+/* ----------------------------------------------------------------------------
+   6. CARDS, TABLES, BADGES, STATS
+---------------------------------------------------------------------------- */
+.card{
+  background: linear-gradient(160deg, var(--surface), var(--surface-2));
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 28px;
+}
+.card-glow{ position: relative; overflow: hidden; }
+.card-glow::before{
+  content: '';
+  position: absolute; inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, var(--cyan), transparent 40%, var(--magenta) 100%);
+  opacity: .35;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+  pointer-events: none;
+}
+
+.stats-container{
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin-bottom: 28px;
+}
+.stat-card{
+  display: flex; align-items: center; gap: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  transition: border-color .25s var(--ease), transform .25s var(--ease);
+}
+.stat-card:hover{ border-color: var(--cyan); transform: translateY(-3px); }
+.stat-card i{
+  width: 46px; height: 46px; flex: none;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 12px;
+  background: var(--cyan-dim); color: var(--cyan);
+  font-size: 1.1rem;
+}
+.stat-card h2{ font-size: 1.6rem; }
+.stat-card p{ font-size: .8rem; margin-top: 2px; }
+
+table{ width: 100%; border-collapse: collapse; font-size: .88rem; }
+thead th{
+  text-align: left;
+  font-family: var(--font-mono);
+  font-size: .68rem; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--text-faint);
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border-strong);
+}
+tbody td{ padding: 14px; border-bottom: 1px solid var(--border); color: var(--text); }
+tbody tr{ transition: background .15s var(--ease); }
+tbody tr:hover{ background: var(--surface); }
+
+.badge{
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 12px; border-radius: 999px;
+  font-family: var(--font-mono); font-size: .7rem; letter-spacing: .04em;
+}
+.badge::before{ content:''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.badge.pending{ background: rgba(255,207,77,.12); color: var(--warn); }
+.badge.approved{ background: rgba(53,242,164,.12); color: var(--ok); }
+.badge.rejected{ background: rgba(255,77,109,.12); color: var(--danger); }
+
+.table-header{
+  display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;
+  margin-bottom: 16px;
+}
+.table-header input{
+  background: var(--surface); border: 1px solid var(--border); color: var(--text);
+  padding: 10px 16px; border-radius: 999px; font-size: .85rem; min-width: 220px;
+}
+.table-header input:focus{ border-color: var(--cyan); outline: none; }
+.empty-row td{ text-align: center; color: var(--text-faint); padding: 34px 14px; }
+
+/* ----------------------------------------------------------------------------
+   7. PAGE-SPECIFIC BUILDING BLOCKS
+---------------------------------------------------------------------------- */
+
+/* ---- Landing hero ---- */
+.hero{ padding: 140px 0 90px; position: relative; }
+.hero-tag{ display: block; margin-bottom: 18px; }
+.hero h1{ font-size: clamp(2.6rem, 6vw, 4.4rem); max-width: 16ch; line-height: 1.05; }
+.hero h1 .accent{
+  background: linear-gradient(90deg, var(--cyan), var(--magenta));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.hero-text{ margin-top: 22px; max-width: 46ch; font-size: 1.05rem; }
+.hero-buttons{ display: flex; gap: 14px; margin-top: 34px; flex-wrap: wrap; }
+
+/* animated ID-scan visual: the site's signature element */
+.scan-id{
+  position: relative;
+  width: min(360px, 80vw); aspect-ratio: 5/6;
+  margin: 60px auto 0;
+  border: 1px solid var(--border-strong);
+  border-radius: 20px;
+  background: linear-gradient(160deg, var(--surface), var(--bg-soft));
+  overflow: hidden;
+  box-shadow: 0 30px 70px -30px rgba(0,240,255,.25);
+}
+.scan-id::before{ /* corner brackets like a scan target */
+  content:'';
+  position: absolute; inset: 14px;
+  border: 1px dashed rgba(0,240,255,.35);
+  border-radius: 12px;
+}
+.scan-id .scan-line{
+  position: absolute; left: 6%; right: 6%; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+  box-shadow: 0 0 16px 2px var(--cyan);
+  animation: scanY 2.6s ease-in-out infinite;
+}
+@keyframes scanY{ 0%,100%{ top: 12%; } 50%{ top: 85%; } }
+.scan-id .id-row{ position: absolute; left: 22px; right: 22px; }
+.scan-id .id-icon{
+  position: absolute; top: 26px; left: 22px;
+  width: 52px; height: 52px; border-radius: 50%;
+  background: var(--cyan-dim); border: 1px solid var(--cyan);
+  display: flex; align-items: center; justify-content: center; color: var(--cyan); font-size: 1.3rem;
+}
+.scan-id .id-lines{ position: absolute; top: 96px; left: 22px; right: 22px; display: flex; flex-direction: column; gap: 10px; }
+.scan-id .id-lines span{ display: block; height: 8px; border-radius: 4px; background: var(--border-strong); }
+.scan-id .id-lines span:nth-child(1){ width: 60%; }
+.scan-id .id-lines span:nth-child(2){ width: 85%; }
+.scan-id .id-lines span:nth-child(3){ width: 40%; }
+.scan-id .id-status{
+  position: absolute; bottom: 22px; left: 22px; right: 22px;
+  display: flex; justify-content: space-between; align-items: center;
+  font-family: var(--font-mono); font-size: .7rem; color: var(--text-faint); letter-spacing: .08em;
+}
+.scan-id .id-status .live{ color: var(--ok); }
+
+/* reveal-on-scroll utility, toggled by app.js IntersectionObserver.
+   IMPORTANT: elements are visible (opacity:1) by default. Only once
+   Natus.fx.initReveal() successfully runs does an element get "armed"
+   (hidden, ready to animate in). This is deliberate: if js/app.js ever
+   fails to load (wrong path, network hiccup, etc.) the page still shows
+   all its content instead of going blank. */
+.reveal{ opacity: 1; transform: none; transition: opacity .7s var(--ease), transform .7s var(--ease); }
+.reveal.reveal-armed{ opacity: 0; transform: translateY(24px); }
+.reveal.reveal-armed.is-visible{ opacity: 1; transform: translateY(0); }
+
+.feature-grid, .process-grid{
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 18px;
+}
+.feature-card, .process-card{
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 26px; transition: transform .25s var(--ease), border-color .25s var(--ease);
+}
+.feature-card:hover, .process-card:hover{ transform: translateY(-4px); border-color: var(--cyan); }
+.feature-icon{
+  width: 42px; height: 42px; border-radius: 10px;
+  background: var(--magenta-dim); color: var(--magenta);
+  display: flex; align-items: center; justify-content: center; margin-bottom: 16px; font-size: 1.1rem;
+}
+.process-card .step-number{
+  font-family: var(--font-mono); font-size: .8rem; color: var(--cyan); letter-spacing: .1em;
+}
+.section-title{ text-align: center; max-width: 640px; margin: 0 auto 44px; }
+.section-title span{ display: block; margin-bottom: 10px; }
+.section-title h2{ font-size: clamp(1.7rem, 3.5vw, 2.4rem); }
+.section-title p{ margin-top: 14px; }
+section.features, section.process, section.stats-section{ padding: 80px 0; }
+
+/* ---- Auth screens ---- */
+.auth-container{
+  min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 40px 20px;
+}
+.auth-card{
+  width: min(420px, 100%);
+  background: rgba(17,17,32,.7);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  padding: 40px clamp(24px, 5vw, 40px);
+  position: relative;
+}
+.auth-card h1{ font-size: 1.7rem; }
+.auth-card > p{ margin-top: 8px; margin-bottom: 28px; }
+.back-btn{
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: .82rem; color: var(--text-dim); margin-bottom: 22px;
+  transition: color .2s var(--ease);
+}
+.back-btn:hover{ color: var(--cyan); }
+.auth-switch{ margin-top: 22px; text-align: center; font-size: .86rem; }
+.auth-switch a{ color: var(--cyan); font-weight: 600; }
+
+.portal-grid{ display: grid; grid-template-columns: 1fr 1fr; gap: 22px; margin-top: 34px; }
+.portal-card{
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 32px 26px; text-align: left;
+  transition: transform .3s var(--ease), border-color .3s var(--ease), box-shadow .3s var(--ease);
+}
+.portal-card:hover{ transform: translateY(-6px); border-color: var(--cyan); box-shadow: 0 20px 50px -20px rgba(0,240,255,.35); }
+.portal-card i{ font-size: 1.6rem; color: var(--cyan); }
+.portal-card h2{ margin-top: 16px; font-size: 1.25rem; }
+.portal-card p{ margin-top: 8px; font-size: .86rem; }
+.portal-card .btn{ margin-top: 20px; }
+
+/* ---- Registration wizard ---- */
+.form-section{ margin-bottom: 34px; }
+.form-section h2{ font-size: 1.15rem; margin-bottom: 18px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+.submit-btn{ margin-top: 8px; }
+
+/* ---- Dashboard shell ---- */
+.dashboard{ display: flex; min-height: 100vh; }
+.dashboard .main-content{ flex: 1; padding: 44px clamp(18px, 4vw, 56px) 100px; max-width: 1180px; margin: 0 auto; width: 100%; }
+.topbar{ display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 16px; margin-bottom: 30px; }
+.topbar h1{ font-size: 1.7rem; }
+.topbar p{ margin-top: 6px; }
+.live-date{ text-align: right; font-family: var(--font-mono); }
+.live-date h3{ font-size: .78rem; color: var(--text-faint); font-weight: 500; }
+.live-date h2{ font-size: 1.2rem; color: var(--cyan); margin-top: 2px; }
+
+.dashboard-content{ display: grid; grid-template-columns: 1.4fr 1fr; gap: 18px; margin-bottom: 30px; }
+.chart-card, .activity-card{
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px;
+}
+.chart-card h2, .activity-card h2{ font-size: 1rem; margin-bottom: 16px; }
+.summary-list{ list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 14px; }
+.summary-list li{ display: flex; align-items: center; gap: 10px; font-size: .85rem; color: var(--text-dim); }
+.summary-list i{ font-size: 8px; color: var(--cyan); }
+
+/* ---- Detail drawer (used in admin dashboard + records) ---- */
+.drawer-backdrop{
+  position: fixed; inset: 0; background: rgba(3,3,8,.6); backdrop-filter: blur(3px);
+  opacity: 0; pointer-events: none; transition: opacity .25s var(--ease); z-index: 210;
+}
+.drawer-backdrop.open{ opacity: 1; pointer-events: auto; }
+.drawer{
+  position: fixed; top: 0; right: 0; height: 100%; width: min(440px, 92vw);
+  background: var(--surface-2); border-left: 1px solid var(--border-strong);
+  transform: translateX(100%); transition: transform .35s var(--ease); z-index: 211;
+  padding: 30px; overflow-y: auto;
+}
+.drawer.open{ transform: translateX(0); }
+.drawer-close{ background: none; border: none; color: var(--text-dim); font-size: 1.4rem; float: right; }
+.drawer h3{ font-size: 1.3rem; margin-top: 4px; }
+.drawer .ref{ font-family: var(--font-mono); font-size: .8rem; color: var(--cyan); margin-top: 4px; }
+.drawer-row{ display: flex; justify-content: space-between; font-size: .87rem; border-bottom: 1px solid var(--border); padding: 12px 0; }
+.drawer-row .k{ color: var(--text-dim); }
+.drawer-actions{ display: flex; gap: 10px; flex-wrap: wrap; margin-top: 24px; }
+
+/* seal / certificate stamp animation, reused on success + records */
+.seal-wrap{ display: flex; justify-content: center; margin: 20px 0; }
+.seal{ width: 120px; height: 120px; opacity: 0; transform: scale(2.2) rotate(-16deg); }
+.seal.stamp-in{ animation: stampIn .6s var(--ease) forwards; }
+@keyframes stampIn{
+  0%{ opacity: 0; transform: scale(2.2) rotate(-16deg); }
+  55%{ opacity: 1; transform: scale(.92) rotate(-4deg); }
+  100%{ opacity: 1; transform: scale(1) rotate(0deg); }
+}
+
+/* ----------------------------------------------------------------------------
+   9. TOAST NOTIFICATIONS  (used by app.js -> Natus.toast())
+---------------------------------------------------------------------------- */
+.toast-stack{
+  position: fixed; top: 24px; left: 50%; transform: translateX(-50%);
+  z-index: 300; display: flex; flex-direction: column; gap: 10px; align-items: center;
+}
+.toast{
+  font-size: .85rem; padding: 12px 20px; border-radius: 999px;
+  background: rgba(17,17,32,.92); border: 1px solid var(--border-strong);
+  backdrop-filter: blur(10px);
+  display: flex; align-items: center; gap: 10px;
+  animation: toastIn .3s var(--ease);
+  box-shadow: 0 10px 30px rgba(0,0,0,.4);
+}
+.toast.ok{ border-color: var(--ok); color: var(--ok); }
+.toast.error{ border-color: var(--danger); color: var(--danger); }
+.toast.info{ border-color: var(--cyan); color: var(--cyan); }
+@keyframes toastIn{ from{ opacity: 0; transform: translateY(-14px); } to{ opacity: 1; transform: translateY(0); } }
+
+/* ----------------------------------------------------------------------------
+   11. CERTIFICATE OF BIRTH
+   A deliberate break from the neon dashboard look: warm paper, a serif
+   voice, and a ribbon "spine" down the side instead of the usual bordered
+   rectangle. Printable straight from the browser (see print rules below).
+---------------------------------------------------------------------------- */
+.cert-page{ min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 70px 20px 100px; }
+.cert-toolbar{ width: min(1000px, 94vw); display: flex; justify-content: space-between; align-items: center; margin-bottom: 26px; gap: 12px; flex-wrap: wrap; }
+.cert-toolbar .back-btn{ margin-bottom: 0; }
+
+.cert-sheet{
+  width: min(1000px, 94vw); aspect-ratio: 1.42 / 1; min-height: 560px;
+  display: grid; grid-template-columns: 92px 1fr;
+  background: var(--paper); color: var(--ink);
+  border-radius: 4px; overflow: hidden; position: relative;
+  box-shadow: 0 40px 100px -30px rgba(0,0,0,.6), 0 0 0 1px rgba(0,0,0,.04);
+}
+
+.cert-spine{
+  position: relative;
+  background: linear-gradient(165deg, #16132a, #0c0a1a);
+  display: flex; flex-direction: column; align-items: center; justify-content: space-between;
+  padding: 30px 0;
+}
+.cert-spine::after{
+  content:''; position: absolute; top: 0; bottom: 0; right: -1px; width: 1px;
+  background-image: linear-gradient(var(--gold) 60%, transparent 0%);
+  background-size: 2px 14px; background-repeat: repeat-y; opacity: .5;
+}
+.cert-spine .cert-mark{ width: 10px; height: 10px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 10px var(--gold); }
+.cert-spine .cert-vertical{
+  writing-mode: vertical-rl; text-orientation: mixed; transform: rotate(180deg);
+  font-family: var(--font-mono); font-size: .68rem; letter-spacing: .3em; color: var(--gold);
+  text-transform: uppercase;
+}
+/* seal overlaps the seam on purpose — it "pins" the two panels together */
+.cert-seal{
+  position: absolute; left: 46px; bottom: 46px; z-index: 3;
+  width: 92px; height: 92px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #f4e2b8, var(--gold) 70%);
+  border: 2px solid rgba(255,255,255,.2);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 12px 26px -8px rgba(0,0,0,.55), inset 0 0 0 3px rgba(255,255,255,.25);
+}
+.cert-seal::before{ content:''; position: absolute; inset: 8px; border-radius: 50%; border: 1px dashed rgba(22,19,42,.4); }
+.cert-seal i{ font-size: 1.5rem; color: #2a2210; }
+
+.cert-main{ position: relative; overflow: hidden; padding: 46px 56px 40px; display: flex; flex-direction: column; }
+.cert-main::before{
+  content: 'NATUS'; position: absolute; right: -40px; top: 50%;
+  transform: translateY(-50%) rotate(-90deg); transform-origin: right center;
+  font-family: var(--font-display-cert); font-size: 8rem; font-weight: 700;
+  color: rgba(22,19,42,.035); letter-spacing: .1em; pointer-events: none; white-space: nowrap;
+}
+.cert-header{ display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; position: relative; z-index: 1; }
+.cert-header .authority{ font-family: var(--font-mono); font-size: .68rem; letter-spacing: .18em; text-transform: uppercase; color: #6b6450; }
+.cert-header .regno{ font-family: var(--font-mono); font-size: .74rem; letter-spacing: .05em; color: var(--ink); border: 1px solid rgba(22,19,42,.2); padding: 5px 12px; border-radius: 999px; }
+
+.cert-title{ margin-top: 22px; position: relative; z-index: 1; }
+.cert-title .kicker{ font-family: var(--font-mono); font-size: .72rem; letter-spacing: .3em; text-transform: uppercase; color: var(--gold-dark); }
+.cert-title h1{ font-family: var(--font-display-cert); font-weight: 700; font-size: clamp(2rem, 4vw, 2.7rem); color: var(--ink); margin-top: 6px; line-height: 1.1; }
+.cert-title .rule{ width: 74px; height: 3px; background: var(--gold); margin-top: 14px; border-radius: 2px; }
+
+.cert-narrative{ margin-top: 26px; font-family: var(--font-body-cert); font-size: 1.12rem; line-height: 1.75; color: #2c2716; max-width: 62ch; position: relative; z-index: 1; }
+.cert-narrative .drop{ float: left; font-family: var(--font-display-cert); font-weight: 700; font-size: 3.6rem; line-height: .8; padding: 6px 8px 0 0; color: var(--gold-dark); }
+.cert-narrative strong{ font-weight: 600; color: var(--ink); border-bottom: 1px solid rgba(22,19,42,.25); }
+
+.cert-fields{ display: flex; gap: 34px; margin-top: 28px; flex-wrap: wrap; position: relative; z-index: 1; }
+.cert-fields .f span{ display: block; font-family: var(--font-mono); font-size: .64rem; letter-spacing: .14em; text-transform: uppercase; color: #8a8266; }
+.cert-fields .f strong{ display: block; margin-top: 4px; font-family: var(--font-body-cert); font-size: 1rem; color: var(--ink); }
+
+.cert-footer{ margin-top: auto; padding-top: 30px; display: flex; justify-content: space-between; align-items: flex-end; position: relative; z-index: 1; }
+.cert-footer .issued{ font-family: var(--font-mono); font-size: .7rem; color: #8a8266; }
+.cert-footer .signature{ text-align: right; }
+.cert-footer .signature .sig-name{ font-family: var(--font-body-cert); font-style: italic; font-weight: 600; font-size: 1.3rem; color: var(--ink); }
+.cert-footer .signature .sig-line{ width: 170px; height: 1px; background: rgba(22,19,42,.3); margin: 6px 0 5px auto; }
+.cert-footer .signature .sig-role{ font-family: var(--font-mono); font-size: .64rem; letter-spacing: .1em; text-transform: uppercase; color: #8a8266; }
+
+.cert-unavailable{ width: min(560px, 94vw); text-align: center; padding: 60px 30px; }
+
+@media print{
+  .bg-atmosphere, .nav-toggle, .nav-panel, .cert-toolbar, .toast-stack{ display: none !important; }
+  body{ background: #fff; }
+  .cert-page{ padding: 0; min-height: 0; }
+  .cert-sheet{ box-shadow: none; width: 100%; aspect-ratio: auto; min-height: 0; }
+}
+@media (max-width: 700px){
+  .cert-sheet{ grid-template-columns: 60px 1fr; aspect-ratio: auto; }
+  .cert-main{ padding: 34px 26px 30px; }
+  .cert-seal{ width: 66px; height: 66px; left: 20px; bottom: 24px; }
+  .cert-fields{ gap: 20px; }
+}
+
+/* ----------------------------------------------------------------------------
+   12. RESPONSIVE (rest of the site)
+---------------------------------------------------------------------------- */
+@media (max-width: 860px){
+  .form-grid{ grid-template-columns: 1fr; }
+  .portal-grid{ grid-template-columns: 1fr; }
+  .dashboard-content{ grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce){
+  *{ animation-duration: .001ms !important; transition-duration: .001ms !important; }
+}

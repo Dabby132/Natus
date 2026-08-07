@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Track Application | NATUS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+<link rel="stylesheet" href="css/style.css">
+<style>
+    /* Page-specific: a small vertical status timeline for one record */
+    .timeline{ margin-top: 34px; position: relative; padding-left: 30px; }
+    .timeline::before{ content:''; position:absolute; left:8px; top:4px; bottom:4px; width:2px; background:var(--border-strong); }
+    .t-item{ position: relative; padding-bottom: 30px; }
+    .t-item:last-child{ padding-bottom: 0; }
+    .t-item::before{
+        content:''; position:absolute; left:-30px; top:2px; width:18px; height:18px; border-radius:50%;
+        background: var(--surface); border: 2px solid var(--border-strong);
+    }
+    .t-item.done::before{ background: var(--ok); border-color: var(--ok); box-shadow: 0 0 10px rgba(53,242,164,.5); }
+    .t-item.rejected::before{ background: var(--danger); border-color: var(--danger); }
+    .t-item.current::before{ background: var(--cyan); border-color: var(--cyan); box-shadow: 0 0 0 5px rgba(0,240,255,.15); }
+    .t-item h4{ font-size: 1rem; }
+    .t-item .date{ font-family: var(--font-mono); font-size: .75rem; color: var(--text-faint); margin-top: 3px; }
+    .t-item p{ margin-top: 6px; font-size: .85rem; max-width: 44ch; }
+</style>
+</head>
+<body>
+<div class="bg-atmosphere"></div>
+
+<main class="container" style="padding-top:80px; padding-bottom:120px; max-width:640px;">
+    <div class="reveal is-visible">
+        <span class="eyebrow">TRACK STATUS</span>
+        <h1 style="margin-top:10px; font-size:2rem;">Find your application</h1>
+        <p style="margin-top:8px;">
+            Enter the registration number you received when you submitted your application.
+            Try <span class="mono" style="color:var(--cyan);">NT-2026-084213</span> for a demo.
+        </p>
+    </div>
+
+    <div class="card card-glow reveal is-visible" style="margin-top:26px;">
+        <div style="display:flex; gap:10px;">
+            <input type="text" id="trackInput" placeholder="e.g. NT-2026-084213"
+                   style="flex:1; background:var(--bg-soft); border:1px solid var(--border); color:var(--text); padding:13px 15px; border-radius:var(--radius-sm); font-family:var(--font-mono);">
+            <button class="btn btn-primary" id="trackBtn"><i class="fa-solid fa-magnifying-glass"></i> Search</button>
+        </div>
+        <div id="trackResult"></div>
+    </div>
+</main>
+
+<script src="js/app.js"></script>
+<script>
+    // This page is public — a parent tracking a record doesn't need an
+    // account, and an admin browsing here doesn't need re-authenticating.
+    // We build the nav to match whoever (if anyone) is currently signed in.
+    const session = Natus.auth.getSession();
+    const navLinks = session
+        ? (session.role === 'admin'
+            ? [{ label:'Dashboard', href:'admindash.html', icon:'fa-chart-line' },
+               { label:'Records', href:'records.html', icon:'fa-box-archive', current:true },
+               { label:'Reports', href:'reports.html', icon:'fa-file-lines' }]
+            : [{ label:'Dashboard', href:'userdash.html', icon:'fa-house' },
+               { label:'Register a birth', href:'register.html', icon:'fa-file-circle-plus' },
+               { label:'Track status', href:'records.html', icon:'fa-magnifying-glass', current:true }])
+        : [{ label:'Home', href:'index.html', icon:'fa-house' },
+           { label:'Sign in', href:'login.html', icon:'fa-right-to-bracket' },
+           { label:'Track status', href:'records.html', icon:'fa-magnifying-glass', current:true }];
+    Natus.nav.init(navLinks);
+
+    const input = document.getElementById('trackInput');
+    const btn = document.getElementById('trackBtn');
+    const result = document.getElementById('trackResult');
+
+    function search(){
+        const val = input.value.trim().toUpperCase();
+        const rec = Natus.db.findApplication(val);
+
+        if (!rec){
+            result.innerHTML = `<p style="text-align:center; margin-top:30px;">No application found for that reference number. Double-check and try again.</p>`;
+            return;
+        }
+
+        const stages = [
+            { key:'submitted', label:'Submitted', desc:'Registration received by the registry.' },
+            { key:'review',    label:'Under review', desc:'A registrar is verifying the submission.' },
+            { key:'decided',   label: rec.status === 'rejected' ? 'Rejected' : 'Verified', desc: rec.status === 'rejected' ? 'The submission needs correction — contact your registration center.' : 'Details confirmed and entered into the civil registry.' },
+            { key:'issued',    label:'Certificate issued', desc:'Certificate is ready to download or collect.' },
+        ];
+        // map status -> how many stages are "done"
+        const doneCount = rec.status === 'pending' ? 1 : rec.status === 'rejected' ? 2 : 4;
+
+        result.innerHTML = `
+            <div style="margin-top:30px; display:flex; justify-content:space-between; align-items:baseline;">
+                <div><h3 style="font-size:1.15rem;">${rec.childFirstName} ${rec.childLastName}</h3><span class="ref mono" style="color:var(--cyan); font-size:.8rem;">${rec.regNo}</span></div>
+                <span class="badge ${rec.status}">${rec.status}</span>
+            </div>
+            <div class="timeline">
+                ${stages.map((s,i) => {
+                    const cls = rec.status === 'rejected' && i === 2 ? 'rejected'
+                              : i < doneCount ? 'done'
+                              : i === doneCount && rec.status === 'pending' ? 'current' : '';
+                    return `<div class="t-item ${cls}"><h4>${s.label}</h4><div class="date">${i < doneCount ? new Date(rec.submittedAt).toLocaleDateString() : 'Pending'}</div><p>${s.desc}</p></div>`;
+                }).join('')}
+            </div>
+            ${rec.status === 'approved' ? `<a href="certificate.html?ref=${rec.regNo}" class="btn btn-primary btn-block" style="margin-top:24px;"><i class="fa-solid fa-certificate"></i> View certificate</a>` : ''}
+        `;
+    }
+
+    btn.addEventListener('click', search);
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') search(); });
+</script>
+</body>
+</html>

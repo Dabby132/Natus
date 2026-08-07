@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NATUS | Civil Registration Authority</title>
+
+<!-- Fonts: Space Grotesk carries headlines, Inter is body copy, JetBrains Mono is for "data" (ref numbers, dates) -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+
+<!-- Shared design system (see file for full section index) -->
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- Fixed neon grid + drifting scan-line behind everything, purely decorative -->
+<div class="bg-atmosphere"></div>
+
+<!-- ===================== HERO ===================== --> 
+<section class="hero">
+    <div class="container">
+        <div class="reveal">
+            <span class="eyebrow hero-tag">CIVIL REGISTRATION AUTHORITY &bull; DIGITAL REGISTRY</span>
+            <h1>Every life,<br><span class="accent">on record.</span></h1>
+            <p class="hero-text">
+                Register births, track applications, and generate secure,
+                verifiable birth certificates — all from one digital registry.
+            </p>
+            <div class="hero-buttons">
+                <a href="signup.html" class="btn btn-primary">
+                    <i class="fa-solid fa-user-plus"></i> Get started
+                </a>
+                <a href="login.html" class="btn btn-ghost">
+                    Sign in 
+                </a>
+            </div>
+        </div>
+
+        <!-- Signature visual: an animated "ID scan" card — ties the neon
+             theme directly back to the subject (identity verification) -->
+        <div class="scan-id reveal">
+            <div class="id-icon"><i class="fa-solid fa-baby"></i></div>
+            <div class="id-lines"><span></span><span></span><span></span></div>
+            <div class="scan-line"></div>
+            <div class="id-status">
+                <span>REG. SCAN</span>
+                <span class="live">&#9679; VERIFYING</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ===================== STATS ===================== -->
+<section class="stats-section">
+    <div class="container">
+        <div class="stats-container">
+            <div class="stat-card reveal">
+                <i class="fa-solid fa-file-circle-check"></i>
+                <div><h2 class="counter" data-target="128406">0</h2><p>Certificates issued</p></div>
+            </div>
+            <div class="stat-card reveal">
+                <i class="fa-solid fa-users"></i>
+                <div><h2 class="counter" data-target="1200000">0</h2><p>Registrations completed</p></div>
+            </div>
+            <div class="stat-card reveal">
+                <i class="fa-solid fa-shield-heart"></i>
+                <div><h2>98.7%</h2><p>Successful verification</p></div>
+            </div>
+            <div class="stat-card reveal">
+                <i class="fa-solid fa-hospital"></i>
+                <div><h2 class="counter" data-target="200">0</h2><p>Health facilities connected</p></div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ===================== FEATURES ===================== -->
+<section class="features">
+    <div class="container">
+        <div class="section-title reveal">
+            <span class="eyebrow">OUR SERVICES</span>
+            <h2>Designed for secure digital birth registration</h2>
+            <p>Built to simplify registration, approval and certificate generation while giving every child a secure digital identity.</p>
+        </div>
+        <div class="feature-grid">
+            <div class="feature-card reveal">
+                <div class="feature-icon"><i class="fa-solid fa-user-plus"></i></div>
+                <h3>Register a birth</h3>
+                <p>Complete birth registration through an easy digital form.</p>
+            </div>
+            <div class="feature-card reveal">
+                <div class="feature-icon"><i class="fa-solid fa-magnifying-glass"></i></div>
+                <h3>Track application</h3>
+                <p>Monitor every application from submission to approval.</p>
+            </div>
+            <div class="feature-card reveal">
+                <div class="feature-icon"><i class="fa-solid fa-file-circle-check"></i></div>
+                <h3>Generate certificate</h3>
+                <p>Produce verified certificates instantly after approval.</p>
+            </div>
+            <div class="feature-card reveal">
+                <div class="feature-icon"><i class="fa-solid fa-shield-halved"></i></div>
+                <h3>Secure records</h3>
+                <p>Protect birth records using secure digital storage.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ===================== PROCESS ===================== -->
+<section class="process">
+    <div class="container">
+        <div class="section-title reveal">
+            <span class="eyebrow">HOW IT WORKS</span>
+            <h2>Register a birth in four simple steps</h2>
+            <p>From registration to certificate generation, every step is secure, transparent and easy.</p>
+        </div>
+        <div class="process-grid">
+            <div class="process-card reveal"><div class="step-number">01</div><h3>Complete registration</h3><p>Fill in the child's details together with the parents' information.</p></div>
+            <div class="process-card reveal"><div class="step-number">02</div><h3>Upload documents</h3><p>Attach the birth notification and identification documents.</p></div>
+            <div class="process-card reveal"><div class="step-number">03</div><h3>Verification</h3><p>Civil registrars review and verify every submitted application.</p></div>
+            <div class="process-card reveal"><div class="step-number">04</div><h3>Receive certificate</h3><p>Download or print the official birth certificate instantly.</p></div>
+        </div>
+    </div>
+</section>
+
+<footer style="padding:40px 0 120px; text-align:center;">
+    <p class="mono" style="font-size:.72rem; letter-spacing:.08em;">&copy; 2026 NATUS CIVIL REGISTRATION AUTHORITY</p>
+</footer>
+
+<script src="js/app.js"></script>
+<script>
+    // Floating nav: on the landing page nobody is logged in yet, so we only
+    // offer the entry points into the system.
+    Natus.nav.init([
+        { label: 'Home',    href: 'index.html',  icon: 'fa-house',        current: true },
+        { label: 'Sign up',  href: 'signup.html', icon: 'fa-user-plus' },
+        { label: 'Sign in',  href: 'login.html',  icon: 'fa-right-to-bracket' },
+    ]);
+
+    // Scroll-reveal + animated counters, both defined in app.js
+    Natus.fx.initReveal();
+    Natus.fx.initCounters();
+</script>
+</body>
+</html>

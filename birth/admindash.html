@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Dashboard | NATUS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+<link rel="stylesheet" href="css/style.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+<div class="bg-atmosphere"></div>
+
+<div class="dashboard">
+    <main class="main-content">
+
+        <div class="topbar reveal is-visible">
+            <div>
+                <h1 id="greeting">Administrator dashboard</h1>
+                <p>Manage all birth registrations across the registry.</p>
+            </div>
+            <div class="live-date">
+                <h3 id="currentDate"></h3>
+                <h2 id="currentTime"></h2>
+            </div>
+        </div>
+
+        <div class="stats-container">
+            <div class="stat-card"><i class="fa-solid fa-file-circle-check"></i><div><h2 id="totalApplications">0</h2><p>Total applications</p></div></div>
+            <div class="stat-card"><i class="fa-solid fa-clock"></i><div><h2 id="pendingApplications">0</h2><p>Pending</p></div></div>
+            <div class="stat-card"><i class="fa-solid fa-circle-check"></i><div><h2 id="approvedApplications">0</h2><p>Approved</p></div></div>
+            <div class="stat-card"><i class="fa-solid fa-circle-xmark"></i><div><h2 id="rejectedApplications">0</h2><p>Rejected</p></div></div>
+        </div>
+
+        <div class="dashboard-content">
+            <div class="chart-card">
+                <h2>Application status</h2>
+                <canvas id="statusChart" height="180"></canvas>
+            </div>
+            <div class="activity-card">
+                <h2>System summary</h2>
+                <ul class="summary-list">
+                    <li><i class="fa-solid fa-circle"></i> Birth registrations received</li>
+                    <li><i class="fa-solid fa-circle"></i> Pending verification</li>
+                    <li><i class="fa-solid fa-circle"></i> Approved certificates</li>
+                    <li><i class="fa-solid fa-circle"></i> Rejected applications</li>
+                </ul>
+                <a href="reports.html" class="btn btn-ghost btn-block" style="margin-top:20px;">
+                    <i class="fa-solid fa-chart-line"></i> View full reports
+                </a>
+            </div>
+        </div>
+
+        <div>
+            <div class="table-header">
+                <h2>Birth registration records</h2>
+                <input type="text" id="searchInput" placeholder="Search records...">
+            </div>
+            <table>
+                <thead><tr><th>Registration No.</th><th>Child name</th><th>Status</th><th>Action</th></tr></thead>
+                <tbody id="adminTable"></tbody>
+            </table>
+        </div>
+    </main>
+</div>
+
+<!-- Slide-in detail drawer, opened by clicking "Review" on any row -->
+<div class="drawer-backdrop" id="drawerBackdrop"></div>
+<div class="drawer" id="drawer"></div>
+
+<script src="js/app.js"></script>
+<script>
+    // Guard: only a logged-in admin may view this page.
+    const session = Natus.auth.requireRole('admin');
+
+    Natus.nav.init([
+        { label: 'Dashboard', href: 'admindash.html', icon: 'fa-chart-line', current: true },
+        { label: 'Reports',   href: 'reports.html',   icon: 'fa-file-lines' },
+        { label: 'Records',   href: 'records.html',   icon: 'fa-box-archive' },
+    ]);
+
+    Natus.fx.initClock();
+
+    let allRecords = Natus.db.getApplications();
+    let statusChart = null;
+
+    function renderStats(records){
+        document.getElementById('totalApplications').textContent = records.length;
+        document.getElementById('pendingApplications').textContent = records.filter(r => r.status === 'pending').length;
+        document.getElementById('approvedApplications').textContent = records.filter(r => r.status === 'approved').length;
+        document.getElementById('rejectedApplications').textContent = records.filter(r => r.status === 'rejected').length;
+    }
+
+    function renderTable(records){
+        const tbody = document.getElementById('adminTable');
+        if (!records.length){
+            tbody.innerHTML = `<tr class="empty-row"><td colspan="4">No records match your search.</td></tr>`;
+            return;
+        }
+        tbody.innerHTML = records.map(r => `
+            <tr>
+                <td class="mono">${r.regNo}</td>
+                <td>${r.childFirstName} ${r.childLastName}</td>
+                <td><span class="badge ${r.status}">${r.status}</span></td>
+                <td><button class="btn btn-ghost btn-sm" data-ref="${r.regNo}">Review</button></td>
+            </tr>`).join('');
+
+        tbody.querySelectorAll('button[data-ref]').forEach(btn => {
+            btn.addEventListener('click', () => openDrawer(btn.dataset.ref));
+        });
+    }
+
+    function renderChart(records){
+        const counts = {
+            pending: records.filter(r => r.status === 'pending').length,
+            approved: records.filter(r => r.status === 'approved').length,
+            rejected: records.filter(r => r.status === 'rejected').length,
+        };
+        if (statusChart) statusChart.destroy();
+        statusChart = new Chart(document.getElementById('statusChart'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Pending', 'Approved', 'Rejected'],
+                datasets: [{
+                    data: [counts.pending, counts.approved, counts.rejected],
+                    backgroundColor: ['#ffcf4d', '#35f2a4', '#ff4d6d'],
+                    borderColor: '#111120',
+                    borderWidth: 3
+                }]
+            },
+            options: { plugins: { legend: { labels: { color: '#9a9db3', font: { family: 'Inter' } } } } }
+        });
+    }
+
+    function refreshAll(){
+        allRecords = Natus.db.getApplications();
+        renderStats(allRecords);
+        renderTable(allRecords);
+        renderChart(allRecords);
+    }
+    refreshAll();
+
+    document.getElementById('searchInput').addEventListener('input', (e) => {
+        const q = e.target.value.toLowerCase();
+        renderTable(allRecords.filter(r =>
+            r.regNo.toLowerCase().includes(q) ||
+            `${r.childFirstName} ${r.childLastName}`.toLowerCase().includes(q)
+        ));
+    });
+
+    /* ---- detail drawer: view a single application and approve/reject it ---- */
+    function openDrawer(regNo){
+        const r = Natus.db.findApplication(regNo);
+        const drawer = document.getElementById('drawer');
+        drawer.innerHTML = `
+            <button class="drawer-close" id="drawerClose">&times;</button>
+            <span class="eyebrow">Application detail</span>
+            <h3>${r.childFirstName} ${r.childLastName}</h3>
+            <div class="ref">${r.regNo}</div>
+
+            <div style="margin-top:20px;">
+                <div class="drawer-row"><span class="k">Status</span><span class="badge ${r.status}">${r.status}</span></div>
+                <div class="drawer-row"><span class="k">Date of birth</span><span>${r.dob || '—'}</span></div>
+                <div class="drawer-row"><span class="k">Gender</span><span>${r.gender || '—'}</span></div>
+                <div class="drawer-row"><span class="k">Mother</span><span>${r.motherName || '—'}</span></div>
+                <div class="drawer-row"><span class="k">Father</span><span>${r.fatherName || '—'}</span></div>
+                <div class="drawer-row"><span class="k">Hospital</span><span>${r.hospital || '—'}</span></div>
+                <div class="drawer-row"><span class="k">Submitted</span><span>${new Date(r.submittedAt).toLocaleString()}</span></div>
+            </div>
+
+            <div class="drawer-actions" id="drawerActions">
+                ${r.status !== 'approved' ? `<button class="btn btn-primary" id="actApprove"><i class="fa-solid fa-circle-check"></i> Approve</button>` : ''}
+                ${r.status !== 'rejected' ? `<button class="btn btn-ghost" id="actReject" style="border-color:var(--danger); color:var(--danger);"><i class="fa-solid fa-circle-xmark"></i> Reject</button>` : ''}
+                ${r.status === 'approved' ? `<a href="certificate.html?ref=${r.regNo}" target="_blank" class="btn btn-ghost"><i class="fa-solid fa-certificate"></i> View certificate</a>` : ''}
+            </div>
+        `;
+        document.getElementById('drawerClose').addEventListener('click', closeDrawer);
+        const approveBtn = document.getElementById('actApprove');
+        const rejectBtn = document.getElementById('actReject');
+        if (approveBtn) approveBtn.addEventListener('click', () => setStatus(regNo, 'approved'));
+        if (rejectBtn) rejectBtn.addEventListener('click', () => setStatus(regNo, 'rejected'));
+
+        document.getElementById('drawerBackdrop').classList.add('open');
+        drawer.classList.add('open');
+    }
+    function setStatus(regNo, status){
+        Natus.db.updateApplicationStatus(regNo, status);
+        Natus.toast(`Application ${regNo} marked ${status}.`, status === 'approved' ? 'ok' : 'info');
+        refreshAll();
+        closeDrawer();
+    }
+    function closeDrawer(){
+        document.getElementById('drawerBackdrop').classList.remove('open');
+        document.getElementById('drawer').classList.remove('open');
+    }
+    document.getElementById('drawerBackdrop').addEventListener('click', closeDrawer);
+</script>
+</body>
+</html>

@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Create Account | NATUS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="bg-atmosphere"></div>
+
+<div class="auth-container">
+    <div class="auth-card reveal is-visible">
+        <a href="login.html" class="back-btn"><i class="fa-solid fa-arrow-left"></i> Back</a>
+
+        <span class="eyebrow">PARENT PORTAL</span>
+        <h1 style="margin-top:8px;">Create your account</h1>
+        <p>Sign up to register births and track applications.</p>
+
+        <form id="signupForm" novalidate>
+            <div class="field">
+                <label for="name">Full name</label>
+                <input type="text" id="name" required placeholder="e.g. Chinwe Okafor">
+            </div>
+            <div class="field">
+                <label for="email">Email</label>
+                <input type="email" id="email" required placeholder="you@example.com">
+            </div>
+            <div class="field">
+                <label for="password">Password</label>
+                <input type="password" id="password" required minlength="6" placeholder="At least 6 characters">
+            </div>
+            <div class="field-error" id="formError"></div>
+            <button type="submit" class="btn btn-primary btn-block">
+                <i class="fa-solid fa-user-plus"></i> Create account
+            </button>
+        </form>
+
+        <p class="auth-switch">Already have an account? <a href="parentlog.html">Sign in</a></p>
+    </div>
+</div>
+
+<script src="js/app.js"></script>
+<script>
+    Natus.nav.init([
+        { label: 'Home',    href: 'index.html', icon: 'fa-house' },
+        { label: 'Sign up',  href: 'signup.html', icon: 'fa-user-plus', current: true },
+        { label: 'Sign in',  href: 'login.html',  icon: 'fa-right-to-bracket' },
+    ]);
+
+    // Handle account creation: validate, write to Natus.db via Natus.auth,
+    // start a session, then send the new parent straight to their dashboard.
+    const form = document.getElementById('signupForm');
+    const errorEl = document.getElementById('formError');
+
+    form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        errorEl.textContent = '';
+
+        const name = document.getElementById('name').value.trim();
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value;
+
+        if (password.length < 6){
+            errorEl.textContent = 'Password must be at least 6 characters.';
+            return;
+        }
+
+        try {
+            Natus.auth.signup({ name, email, password });
+            Natus.toast(`Welcome, ${name.split(' ')[0]}! Account created.`, 'ok');
+            setTimeout(() => { window.location.href = 'userdash.html'; }, 700);
+        } catch (err){
+            errorEl.textContent = err.message;
+        }
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Certificate | NATUS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Playfair+Display:wght@600;700;800&family=Cormorant+Garamond:ital,wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="bg-atmosphere"></div>
+
+<main class="cert-page">
+    <div class="cert-toolbar reveal is-visible">
+        <a href="records.html" class="back-btn"><i class="fa-solid fa-arrow-left"></i> Back to tracking</a>
+        <button class="btn btn-ghost btn-sm" id="printBtn"><i class="fa-solid fa-print"></i> Print / Save as PDF</button>
+    </div>
+    <div id="certRoot"></div>
+</main>
+
+<script src="js/app.js"></script>
+<script>
+    const session = Natus.auth.getSession();
+    Natus.nav.init(session
+        ? (session.role === 'admin'
+            ? [{ label:'Dashboard', href:'admindash.html', icon:'fa-chart-line' }, { label:'Records', href:'records.html', icon:'fa-box-archive' }]
+            : [{ label:'Dashboard', href:'userdash.html', icon:'fa-house' }, { label:'Track status', href:'records.html', icon:'fa-magnifying-glass' }])
+        : [{ label:'Home', href:'index.html', icon:'fa-house' }, { label:'Track status', href:'records.html', icon:'fa-magnifying-glass' }]);
+
+    // spells out a date the way formal registry documents usually do,
+    // e.g. "18th day of July, Two Thousand and Twenty-Six"
+    const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const ONES = ['','one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve','thirteen','fourteen','fifteen','sixteen','seventeen','eighteen','nineteen'];
+    const TENS = ['','','twenty','thirty','forty','fifty','sixty','seventy','eighty','ninety'];
+
+    function ordinal(n){
+        const v = n % 100;
+        if (v >= 11 && v <= 13) return n + 'th';
+        return n + (['th','st','nd','rd'][n % 10] || 'th');
+    }
+    function twoDigitWords(n){
+        if (n < 20) return ONES[n];
+        return TENS[Math.floor(n / 10)] + (n % 10 ? '-' + ONES[n % 10] : '');
+    }
+    function yearInWords(year){
+        const thousands = Math.floor(year / 1000);
+        const rest = year % 1000;
+        const hundreds = Math.floor(rest / 100);
+        const tail = rest % 100;
+        let words = twoDigitWords(thousands) + ' thousand';
+        if (hundreds) words += ' ' + ONES[hundreds] + ' hundred';
+        if (tail) words += ' and ' + twoDigitWords(tail);
+        return words.split(' ').map(w => w === 'and' ? w : w[0].toUpperCase() + w.slice(1)).join(' ');
+    }
+    function formatDob(dob){
+        const d = new Date(dob + 'T00:00:00');
+        return `${ordinal(d.getDate())} day of ${MONTHS[d.getMonth()]}, ${yearInWords(d.getFullYear())}`;
+    }
+
+    const ref = (new URLSearchParams(location.search).get('ref') || '').toUpperCase();
+    const record = ref ? Natus.db.findApplication(ref) : null;
+    const root = document.getElementById('certRoot');
+
+    if (!record || record.status !== 'approved'){
+        root.innerHTML = `
+            <div class="card cert-unavailable reveal is-visible">
+                <i class="fa-solid fa-certificate" style="font-size:2rem; color:var(--cyan);"></i>
+                <h2 style="margin-top:16px; font-size:1.3rem;">${!record ? 'Certificate not found' : 'Certificate not yet available'}</h2>
+                <p style="margin-top:10px;">${!record
+                    ? "That registration number doesn't match any application on file."
+                    : `This application is still ${record.status}. A certificate is issued once the registry approves it.`}</p>
+                <a href="records.html" class="btn btn-primary" style="margin-top:24px;"><i class="fa-solid fa-magnifying-glass"></i> Track another number</a>
+            </div>`;
+    } else {
+        const issuedDate = new Date(record.submittedAt);
+        root.innerHTML = `
+            <div class="cert-sheet reveal is-visible">
+                <div class="cert-spine">
+                    <div class="cert-mark"></div>
+                    <div class="cert-vertical">Civil Registration Authority &middot; Republic Registry</div>
+                    <div class="cert-seal"><i class="fa-solid fa-dove"></i></div>
+                </div>
+                <div class="cert-main">
+                    <div class="cert-header">
+                        <span class="authority">NATUS &middot; Office of Vital Records</span>
+                        <span class="regno mono">${record.regNo}</span>
+                    </div>
+                    <div class="cert-title">
+                        <span class="kicker">Extract of the civil register</span>
+                        <h1>Certificate of Birth</h1>
+                        <div class="rule"></div>
+                    </div>
+                    <p class="cert-narrative">
+                        <span class="drop">T</span>his is to certify that <strong>${record.childFirstName} ${record.childLastName}</strong>
+                        was born a ${record.gender ? record.gender.toLowerCase() : ''} child on the ${formatDob(record.dob)},
+                        at <strong>${record.hospital || 'a registered facility'}</strong>, to
+                        <strong>${record.motherName || '—'}</strong> and <strong>${record.fatherName || '—'}</strong>,
+                        and that this birth stands duly entered in the civil register of the Republic under the
+                        reference shown above.
+                    </p>
+                    <div class="cert-fields">
+                        <div class="f"><span>Date of birth</span><strong>${record.dob || '—'}</strong></div>
+                        <div class="f"><span>Gender</span><strong>${record.gender || '—'}</strong></div>
+                        <div class="f"><span>Place of birth</span><strong>${record.hospital || '—'}</strong></div>
+                    </div>
+                    <div class="cert-footer">
+                        <span class="issued">Issued ${issuedDate.toLocaleDateString(undefined, { year:'numeric', month:'long', day:'numeric' })}</span>
+                        <div class="signature">
+                            <div class="sig-name">R. Adeyemi</div>
+                            <div class="sig-line"></div>
+                            <div class="sig-role">Registrar, NATUS</div>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+    }
+
+    document.getElementById('printBtn').addEventListener('click', () => window.print());
+</script>
+</body>
+</html>

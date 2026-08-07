@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Birth Registration | NATUS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="bg-atmosphere"></div>
+
+<main class="container" style="padding-top:70px; padding-bottom:120px; max-width:760px;">
+
+    <div class="reveal is-visible" style="margin-bottom:34px;">
+        <span class="eyebrow">NEW APPLICATION</span>
+        <h1 style="margin-top:10px; font-size:2rem;">Birth registration</h1>
+        <p style="margin-top:8px;">Complete the information below to register a birth.</p>
+    </div>
+
+    <!-- The full form, submitted in one go and saved as a "pending" application -->
+    <form id="birthForm" class="card card-glow" novalidate>
+
+        <div class="form-section">
+            <h2><i class="fa-solid fa-baby" style="color:var(--cyan); margin-right:8px;"></i>Child information</h2>
+            <div class="form-grid">
+                <div class="field"><label>First name</label><input type="text" id="childFirstName" required></div>
+                <div class="field"><label>Middle name</label><input type="text" id="childMiddleName"></div>
+                <div class="field"><label>Last name</label><input type="text" id="childLastName" required></div>
+                <div class="field">
+                    <label>Gender</label>
+                    <select id="gender"><option>Female</option><option>Male</option></select>
+                </div>
+                <div class="field"><label>Date of birth</label><input type="date" id="dob" required></div>
+                <div class="field"><label>Time of birth</label><input type="time" id="birthTime"></div>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h2><i class="fa-solid fa-people-roof" style="color:var(--cyan); margin-right:8px;"></i>Parents information</h2>
+            <div class="form-grid">
+                <div class="field"><label>Mother's full name</label><input type="text" id="motherName" required></div>
+                <div class="field"><label>Father's full name</label><input type="text" id="fatherName" required></div>
+                <div class="field"><label>Mother's nationality</label><input type="text" id="motherNationality" required></div>
+                <div class="field"><label>Father's nationality</label><input type="text" id="fatherNationality" required></div>
+                <div class="field"><label>Mother's date of birth</label><input type="date" id="motherDOB"></div>
+                <div class="field"><label>Father's date of birth</label><input type="date" id="fatherDOB"></div>
+                <div class="field"><label>Mother's national ID</label><input type="text" id="motherID"></div>
+                <div class="field"><label>Father's national ID</label><input type="text" id="fatherID"></div>
+            </div>
+        </div>
+
+        <div class="form-section" style="margin-bottom:10px;">
+            <h2><i class="fa-solid fa-hospital" style="color:var(--cyan); margin-right:8px;"></i>Birth details</h2>
+            <div class="form-grid">
+                <div class="field full"><label>Hospital / place of birth</label><input type="text" id="hospital" required></div>
+                <div class="field"><label>Doctor / midwife</label><input type="text" id="doctor"></div>
+                <div class="field"><label>Birth weight (kg)</label><input type="number" id="weight" step="0.1"></div>
+                <div class="field">
+                    <label>Birth type</label>
+                    <select id="birthType"><option>Single</option><option>Twins</option><option>Triplets</option></select>
+                </div>
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block submit-btn">
+            <i class="fa-solid fa-paper-plane"></i> Submit registration
+        </button>
+    </form>
+
+    <!-- Success state, shown in place of the form after submission -->
+    <div class="card card-glow" id="successCard" style="display:none; text-align:center;">
+        <div class="seal-wrap"><i class="fa-solid fa-shield-heart" id="seal" style="font-size:4rem; color:var(--ok);"></i></div>
+        <h2>Registration submitted</h2>
+        <p style="margin-top:8px; max-width:40ch; margin-inline:auto;">
+            A registrar will verify the details, typically within two working days. Save your reference number to track progress.
+        </p>
+        <p class="mono" style="margin-top:18px; font-size:1.4rem; color:var(--cyan);" id="refDisplay"></p>
+        <a href="userdash.html" class="btn btn-ghost" style="margin-top:20px;">Go to my dashboard</a>
+    </div>
+</main>
+
+<script src="js/app.js"></script>
+<script>
+    // This page requires a logged-in parent — bounce to login otherwise.
+    const session = Natus.auth.requireRole('parent');
+
+    // Natus.nav.init appends a "log out" entry automatically whenever a
+    // session exists, so we only list the real navigation destinations here.
+    Natus.nav.init([
+        { label: 'Dashboard',        href: 'userdash.html', icon: 'fa-house' },
+        { label: 'Register a birth', href: 'register.html', icon: 'fa-file-circle-plus', current: true },
+    ]);
+
+    const form = document.getElementById('birthForm');
+    const successCard = document.getElementById('successCard');
+
+    form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const val = id => document.getElementById(id).value.trim();
+
+        // Basic required-field check across the whole form before saving
+        const required = ['childFirstName','childLastName','dob','motherName','fatherName','motherNationality','fatherNationality','hospital'];
+        const missing = required.find(id => !val(id));
+        if (missing){
+            Natus.toast('Please fill in all required fields.', 'error');
+            document.getElementById(missing).focus();
+            return;
+        }
+
+        const record = Natus.db.createApplication({
+            ownerEmail: session.email,
+            childFirstName: val('childFirstName'),
+            childMiddleName: val('childMiddleName'),
+            childLastName: val('childLastName'),
+            gender: val('gender'),
+            dob: val('dob'),
+            birthTime: val('birthTime'),
+            motherName: val('motherName'),
+            fatherName: val('fatherName'),
+            motherNationality: val('motherNationality'),
+            fatherNationality: val('fatherNationality'),
+            motherDOB: val('motherDOB'),
+            fatherDOB: val('fatherDOB'),
+            motherID: val('motherID'),
+            fatherID: val('fatherID'),
+            hospital: val('hospital'),
+            doctor: val('doctor'),
+            weight: val('weight'),
+            birthType: val('birthType')
+        });
+
+        form.style.display = 'none';
+        successCard.style.display = 'block';
+        document.getElementById('refDisplay').textContent = record.regNo;
+        requestAnimationFrame(() => document.getElementById('seal').classList.add('stamp-in'));
+        Natus.toast('Registration submitted successfully.', 'ok');
+    });
+</script>
+</body>
+</html>
